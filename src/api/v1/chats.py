@@ -8,7 +8,11 @@ from dependency import get_current_user, get_db
 from src.enum import ChatRoles, ChatType
 from src.models import User
 from src.repository import chats as chats_repository
-from src.schemas import ChatMemberSchema, ChatSchema, CreateChatSchema
+from src.schemas import (
+    ChatMemberSchema,
+    ChatSchema,
+    CreateChatSchema,
+)
 
 router = APIRouter()
 
@@ -157,3 +161,15 @@ def get_chat_member(
             detail="Chat member not found",
         )
     return ChatMemberSchema.model_validate(chat_member)
+
+
+@router.get("/{chat_id}/followers/count")
+def get_followers_count(
+    chat_id: int,
+    db: Session = Depends(get_db),
+):
+    count = chats_repository.get_chat_members_count(db, chat_id)
+    return {
+        "followers": count,
+        "chat_id": chat_id,
+    }

@@ -67,4 +67,9 @@ def get_chat_last_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MessageSchema:
-    return messages_repository.get_chat_last_message(db, chat_id)
+    result = messages_repository.get_chat_last_message(db, chat_id)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="No messages in chat")
+
+    return result

@@ -44,6 +44,8 @@ def register(payload: CreateUserSchema, db: Session = Depends(get_db)) -> UserSc
         payload.login,
         payload.name,
         hashed_password,
+        payload.phone,
+        payload.email,
     )
 
     db.commit()

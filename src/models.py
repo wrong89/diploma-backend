@@ -14,6 +14,8 @@ class User(Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    phone: Mapped[str] = mapped_column(String(12), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
 
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -52,42 +54,6 @@ class ChatMember(Base):
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
 
     last_read_msg_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-
-# class Chat(Base):
-#     __tablename__ = "chats"
-
-#     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-
-#     type: Mapped[str] = mapped_column(String(20), nullable=False)
-
-#     address: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
-
-#     created_at: Mapped[str] = mapped_column(
-#         TIMESTAMP, server_default=text("current_timestamp")
-#     )
-
-
-# class ChatMember(Base):
-#     __tablename__ = "chat_members"
-
-#     role: Mapped[str] = mapped_column(String(32), default=ChatRoles.USER.value)
-
-#     chat_id: Mapped[int] = mapped_column(
-#         Integer, ForeignKey("chats.id", ondelete="CASCADE"), primary_key=True
-#     )
-
-#     user_id: Mapped[int] = mapped_column(
-#         Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
-#     )
-
-#     joined_at: Mapped[str] = mapped_column(
-#         TIMESTAMP, server_default=text("current_timestamp")
-#     )
-
-#     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
-
-#     last_read_msg_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Message(Base):
