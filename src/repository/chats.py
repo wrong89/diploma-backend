@@ -1,9 +1,10 @@
 from typing import List
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.enum import ChatRoles
-from src.models import Chat, ChatMember
+from src.enum import ChatRoles, ChatType
+from src.models import Chat, ChatMember, User
 
 
 def create_chat(db: Session, type: str, address: str | None, title: str):
@@ -63,6 +64,20 @@ def get_user_chats(db: Session, user_id: int) -> List[Chat]:
         user_chats.append(chat)
 
     return user_chats
+
+
+def get_other_chat_member(
+    db: Session,
+    chat_id: int,
+    current_user_id: int,
+) -> User | None:
+    return (
+        db.query(User)
+        .join(ChatMember, ChatMember.user_id == User.id)
+        .filter(ChatMember.chat_id == chat_id)
+        .filter(User.id != current_user_id)
+        .first()
+    )
 
 
 def update_last_read_msg_id(db: Session, chat_id: int, last_read_msg_id: int) -> int:
@@ -127,3 +142,33 @@ def get_chat_member(db: Session, chat_id: int, user_id: int) -> ChatMember | Non
         .filter(ChatMember.chat_id == chat_id, ChatMember.user_id == user_id)
         .scalar()
     )
+
+
+def get_private_chat_between_users(
+    db: Session, user1_id: int, user2_id: int
+) -> Chat | None:
+    chat = (
+        db.query(Chat)
+        .join(ChatMember)
+        .filter(Chat.type == ChatType.PRIVATE)
+        .filter(ChatMember.user_id.in_([user1_id, user2_id]))
+        .group_by(Chat.id)
+        .having(func.count(ChatMember.user_id) == 2)
+        .first()
+    )
+
+    return chat
+
+
+def get_private_chat_title(
+    db: Session, chat_id: int, origin_user_id: int
+) -> int | None:
+    chat_member = (
+        db.query(ChatMember)
+        .filter(ChatMember.chat_id == chat_id, ChatMember.user_id != origin_user_id)
+        .first()
+    )
+    if not chat_member:
+        return None
+
+    return chat_member.user_id

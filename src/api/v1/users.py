@@ -90,3 +90,19 @@ async def read_user_name(
             detail="User not found",
         )
     return UserSchema.model_validate(user)
+
+
+@router.get("/{login}", response_model=UserSchema)
+async def get_user_by_login(
+    login: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserSchema:
+    user = users_repository.get_user_by_login(db, login)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"User with {login} is not found",
+        )
+
+    return UserSchema.model_validate(user)
