@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.v1.chats import router as chats_router
 from src.api.v1.messages import router as messages_router
@@ -10,6 +11,8 @@ from src.database import Base, engine
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(chats_router, prefix="/api/v1/chats", tags=["chats"])

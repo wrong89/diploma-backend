@@ -1,7 +1,8 @@
+import uuid
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from dependency import get_current_user, get_db
@@ -12,30 +13,47 @@ from src.repository import users as users_repository
 from src.schemas import (
     ChatMemberSchema,
     ChatSchema,
-    CreateChatSchema,
 )
-from src.utils import make_chat_from_user
+from src.utils import CHAT_UPLOAD_DIR, make_chat_from_user
 
 router = APIRouter()
 
 
 @router.post("/", response_model=ChatSchema)
-def create_chat(
-    payload: CreateChatSchema,
+@router.post("/", response_model=ChatSchema)
+async def create_chat(
+    type: str = Form(...),
+    address: str | None = Form(None),
+    title: str = Form(...),
+    avatar: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChatSchema:
-    if payload.address and chats_repository.get_chat_by_address(db, payload.address):
+    if address and chats_repository.get_chat_by_address(db, address):
         raise HTTPException(
             status_code=400,
             detail="Chat already exists",
         )
 
+    avatar_path = None
+
+    if avatar:
+        ext = avatar.filename.split(".")[-1]
+        filename = f"{uuid.uuid4()}.{ext}"
+
+        file_path = CHAT_UPLOAD_DIR / filename
+
+        with open(file_path, "wb") as buffer:
+            buffer.write(await avatar.read())
+
+        avatar_path = f"/static/chat_avatars/{filename}"
+
     new_chat = chats_repository.create_chat(
         db,
-        payload.type,
-        payload.address,
-        payload.title,
+        type,
+        address,
+        title,
+        avatar_path=avatar_path,
     )
 
     chats_repository.join_chat(db, new_chat.id, current_user.id, ChatRoles.ADMIN)
@@ -117,16 +135,6 @@ def join_chat(
     return ChatSchema.model_validate(joined_chat)
 
 
-# @router.get("/", response_model=List[ChatSchema])
-# def get_my_chats(
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user),
-# ) -> List[ChatSchema]:
-#     # Useless function get_user_chats.
-#     # TODO: Remove it and change to get_user_member_chats
-#     return chats_repository.get_user_chats(db, current_user.id)
-
-
 @router.get("/", response_model=List[ChatSchema])
 def get_my_chats(
     db: Session = Depends(get_db),
@@ -148,6 +156,7 @@ def get_my_chats(
 
             if other_user:
                 chat_data.title = other_user.name
+                chat_data.avatar_path = other_user.avatar_path
 
         result.append(chat_data)
 
@@ -181,8 +190,15 @@ def get_chat_by_id(
 ):
     chat = chats_repository.get_chat_by_id(db, chat_id)
 
+    if not chat:
+        raise HTTPException(
+            status_code=404,
+            detail="Chat not found",
+        )
+
+    chat_data = ChatSchema.model_validate(chat)
+
     if chat.type == ChatType.PRIVATE:
-        chat.title = ""
         opposite_user_id = chats_repository.get_private_chat_title(
             db,
             chat_id,
@@ -190,16 +206,12 @@ def get_chat_by_id(
         )
 
         user = users_repository.get_user_by_id(db, opposite_user_id)
+
         if user:
-            chat.title = user.name
+            chat_data.title = user.name
+            chat_data.avatar_path = user.avatar_path
 
-    if not chat:
-        raise HTTPException(
-            status_code=404,
-            detail="Chat not found",
-        )
-
-    return ChatSchema.model_validate(chat)
+    return chat_data
 
 
 @router.get("/by-address/{address}", response_model=ChatSchema)

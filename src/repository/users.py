@@ -18,6 +18,7 @@ def create_user(
     password: str,
     phone: str,
     email: str,
+    avatar_path: str | None = None,
 ) -> User:
     user = User(
         login=login,
@@ -25,7 +26,9 @@ def create_user(
         password_hash=password,
         phone=phone,
         email=email,
+        avatar_path=avatar_path,
     )
+
     db.add(user)
     db.flush()
     return user

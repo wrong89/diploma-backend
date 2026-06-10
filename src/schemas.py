@@ -10,6 +10,7 @@ class UserSchema(BaseModel):
     login: str
     phone: PhoneNumber
     email: EmailStr
+    avatar_path: str | None
 
     class Config:
         from_attributes = True
@@ -43,6 +44,7 @@ class ChatSchema(BaseModel):
     address: str | None
     created_at: datetime
     title: str
+    avatar_path: str | None
 
     class Config:
         from_attributes = True

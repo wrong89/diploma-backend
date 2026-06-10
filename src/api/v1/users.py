@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+import uuid
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -8,6 +10,7 @@ from src import auth
 from src.models import User
 from src.repository import users as users_repository
 from src.schemas import CreateUserSchema, Token, UserSchema
+from src.utils import UPLOAD_DIR
 
 router = APIRouter()
 
@@ -30,23 +33,45 @@ def create_user(payload: CreateUserSchema, db: Session = Depends(get_db)) -> Use
 
 
 @router.post("/register", response_model=UserSchema)
-def register(payload: CreateUserSchema, db: Session = Depends(get_db)) -> UserSchema:
-    if users_repository.get_user_by_login(db, payload.login):
+async def register(
+    login: str = Form(...),
+    name: str = Form(...),
+    password: str = Form(...),
+    phone: str = Form(...),
+    email: str = Form(...),
+    avatar: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+) -> UserSchema:
+    if users_repository.get_user_by_login(db, login):
         raise HTTPException(
             status_code=400,
             detail="User already exists",
         )
 
-    hashed_password = auth.get_password_hash(payload.password)
+    hashed_password = auth.get_password_hash(password)
+
+    avatar_path = None
 
     new_user = users_repository.create_user(
         db,
-        payload.login,
-        payload.name,
+        login,
+        name,
         hashed_password,
-        payload.phone,
-        payload.email,
+        phone,
+        email,
     )
+
+    if avatar:
+        ext = avatar.filename.split(".")[-1]
+        filename = f"{uuid.uuid4()}.{ext}"
+
+        file_path = UPLOAD_DIR / filename
+
+        with open(file_path, "wb") as buffer:
+            buffer.write(await avatar.read())
+
+        avatar_path = f"/static/avatars/{filename}"
+        new_user.avatar_path = avatar_path
 
     db.commit()
     db.refresh(new_user)

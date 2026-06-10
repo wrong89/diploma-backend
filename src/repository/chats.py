@@ -7,8 +7,14 @@ from src.enum import ChatRoles, ChatType
 from src.models import Chat, ChatMember, User
 
 
-def create_chat(db: Session, type: str, address: str | None, title: str):
-    new_chat = Chat(type=type, address=address, title=title)
+def create_chat(
+    db: Session,
+    type: str,
+    address: str | None,
+    title: str,
+    avatar_path: str | None,
+):
+    new_chat = Chat(type=type, address=address, title=title, avatar_path=avatar_path)
 
     db.add(new_chat)
     db.flush()

@@ -16,6 +16,7 @@ class User(Base):
     login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     phone: Mapped[str] = mapped_column(String(12), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
+    avatar_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -32,6 +33,7 @@ class Chat(Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     address: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    avatar_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
